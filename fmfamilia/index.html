@@ -253,7 +253,7 @@ function saveLST(){try{localStorage.setItem('fm-stats',JSON.stringify(LST))}catc
 function bump(k){if(DBG)return;if(USER){PEND[k]++;if(STATS)STATS[k==='m'?'melons':'games']++}else{LST[k]++;saveLST()}}
 function hdr(){const h={'Content-Type':'application/json'};if(TOK)h.Authorization='Bearer '+TOK;return h}
 function setAuth(t,u,st){TOK=t;USER=u;STATS=st||null;PEND={m:0,g:0};try{if(t){localStorage.setItem('fm-tok',t);localStorage.setItem('fm-user',u)}else{localStorage.removeItem('fm-tok');localStorage.removeItem('fm-user')}}catch(e){}drawLogin()}
-function drawLogin(){$('lg').textContent=USER?'👤 '+USER:'👤 Entrar';$('lg').className=USER?'in':''}
+function drawLogin(){$('lg').textContent=USER?'👤 '+USER:'👤 Entrar';$('lg').className=USER?'in':'';$('lg').disabled=!USER;$('lg').style.opacity=USER?'':'.4';$('lg').style.cursor=USER?'':'not-allowed'}
 function saveScore(){
   if(score<=0||DBG)return 0;
   const e={n:nameV(),s:score,d:Math.round(gt),t:Date.now()};
