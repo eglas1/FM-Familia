@@ -1004,7 +1004,9 @@ function drawHero(dir){
   $('rec1').querySelector('.rp').textContent=HE[HI]+' '+HN[HI]+' · '+(r?r.s:0)+' pts';
   $('hpv').hidden=HI===0;$('hnx').hidden=HI===HM.length-1;
   $('hdt').innerHTML=HM.map((x,i)=>'<i'+(i===HI?' class="on"':'')+'></i>').join('');
-  if(dir){[im,$('rec1')].forEach(el=>{try{el.animate([{opacity:0,transform:'translateX('+(dir*60)+'px)'},{opacity:1,transform:'none'}],{duration:260,easing:'ease-out'})}catch(e){}})}
+  if(dir){[im,$('rec1')].forEach(el=>{try{el.animate([{opacity:0,transform:'translateX('+(dir*60)+'px)'},{opacity:1,transform:'none'}],{duration:260,easing:'ease-out'})}catch(e){}});
+    /* o "#1" já usa transform no pulsar (CSS); por isso desliza pela margem, que funciona em qualquer navegador e se soma ao pulsar */
+    const n1=$('hero').querySelector('.n1');if(n1)try{n1.animate([{opacity:0,marginLeft:(dir*60)+'px'},{opacity:1,marginLeft:'0px'}],{duration:260,easing:'ease-out'})}catch(e){}}
 }
 function heroGo(d){const n=HI+d;if(n<0||n>=HM.length)return;HI=n;drawHero(d)}
 $('hnx').onclick=()=>heroGo(1);$('hpv').onclick=()=>heroGo(-1);
@@ -1403,6 +1405,9 @@ let DBG=false,SPD=1,FREEZE=false,NOLOSE=false,DMODE='one';
 (function(){
   const COCO=9,dbg=document.createElement('div');dbg.id='dbg';dbg.hidden=true;
   const MODES=[['one','Criar fruta'],['pair','Criar par (funde)'],['hand','Na mão'],['next','Próxima']];
+  /* modo em que o recorde do console é aplicado ('all' = todos os modos, como era antes) */
+  const RMODES=[['all','Todos'],['normal','🍉 Clássico'],['surv','⏳ Sobrevivência'],['static','🧱 Estática'],['luck','🍀 Sorte']];
+  let RMODE='all';
   dbg.innerHTML=
     '<div class="dh"><b>🛠️ Console de testes <small style="font-weight:400;opacity:.6">· arraste</small></b><button class="s" id="dm">▾</button><button id="dx">✕</button></div>'+
     '<div class="ds">'+
@@ -1419,7 +1424,7 @@ let DBG=false,SPD=1,FREEZE=false,NOLOSE=false,DMODE='one';
     '<h4>Estatísticas</h4><div class="dg"><button class="s" data-st="m:1">+1 🍉</button><button class="s" data-st="m:10">+10 🍉</button><button class="s" data-st="m:100">+100 🍉</button><button class="s" data-st="m:1000">+1.000 🍉</button><button class="s" data-st="m:0">Zerar 🍉</button></div>'+
     '<div class="dg" style="margin-top:6px"><button class="s" data-st="g:1">+1 🎮</button><button class="s" data-st="g:10">+10 🎮</button><button class="s" data-st="g:100">+100 🎮</button><button class="s" data-st="g:0">Zerar 🎮</button></div>'+
     '<div class="dg" style="margin-top:6px"><button class="s" data-st="s:60000">+1 min ⏱️</button><button class="s" data-st="s:600000">+10 min ⏱️</button><button class="s" data-st="s:3600000">+1 h ⏱️</button><button class="s" data-st="s:36000000">+10 h ⏱️</button><button class="s" data-st="s:0">Zerar ⏱️</button></div><p class="dw" id="dsti" style="margin:6px 0 0;color:inherit;opacity:.8"></p>'+
-    '<h4>Recordes</h4><div class="dg"><input type="number" id="drv" placeholder="Recorde (pts)" inputmode="numeric"><button id="drset">Definir</button><button class="s" id="drzero">Zerar</button></div>'+
+    '<h4>Recordes</h4><div class="dg" id="drm" style="margin-bottom:6px">'+RMODES.map(m=>'<button class="s" data-rmode="'+m[0]+'">'+m[1]+'</button>').join('')+'</div><div class="dg"><input type="number" id="drv" placeholder="Recorde (pts)" inputmode="numeric"><button id="drset">Definir</button><button class="s" id="drzero">Zerar</button></div>'+
     '<div class="dg" style="margin-top:6px">'+[10000,30000,50000,100000].map(n=>'<button class="s" data-radd="'+n+'">+'+n.toLocaleString('pt-BR')+'</button>').join('')+'</div><p class="dw" id="dri" style="margin:6px 0 0;color:inherit;opacity:.8"></p>'+
     '<h4>Notificação de insígnia</h4><div class="dc da" id="dach"></div>'+
     '<h4>Conta</h4><div class="dg"><button class="s" id="dacc">♻️ Resetar conta</button></div><p class="dw" id="dacci" style="margin:6px 0 0;color:inherit;opacity:.8"></p>'+
@@ -1460,15 +1465,20 @@ let DBG=false,SPD=1,FREEZE=false,NOLOSE=false,DMODE='one';
   function chips(){q('#dcs').innerHTML=F.map((f,i)=>{const u=ico(f);return '<button data-l="'+i+'" title="Nível '+(i+1)+'"'+(u?'':' style="background:'+f[2]+'33"')+'>'+(u?'<img src="'+u+'">':f[0])+'</button>'}).join('')}
   function sync(){
     qa('[data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===DMODE));
+    qa('[data-rmode]').forEach(b=>b.classList.toggle('on',b.dataset.rmode===RMODE));
     qa('[data-spd]').forEach(b=>b.classList.toggle('on',+b.dataset.spd===SPD));
     q('#dfz').classList.toggle('on',FREEZE);q('#dnl').classList.toggle('on',NOLOSE);
   }
-  const RKEYS=['fm-best','fm-best-s','fm-best-l','fm-best-v'];
-  function recInfo(){q('#dri').textContent='Recorde atual: '+recBest().toLocaleString('pt-BR')+' pts'}
+  const RKEYS=['fm-best','fm-best-s','fm-best-l','fm-best-v'],RKMAP={normal:'fm-best',surv:'fm-best-v',static:'fm-best-s',luck:'fm-best-l'};
+  /* recorde do modo escolhido ('all' = o maior entre todos os modos) */
+  function recOf(m){if(m==='all')return recBest();let r=0;try{r=+localStorage.getItem(RKMAP[m])||0}catch(e){}return RKMAP[m]===bestKey()?Math.max(r,best||0):r}
+  function recInfo(){const m=RMODES.find(x=>x[0]===RMODE);q('#dri').textContent=(RMODE==='all'?'Recorde atual (maior de todos os modos): ':'Recorde '+m[1]+': ')+recOf(RMODE).toLocaleString('pt-BR')+' pts'}
   function setRec(n){
     n=Math.max(0,Math.floor(n)||0);const o=recBest();
-    try{RKEYS.forEach(k=>localStorage.setItem(k,n))}catch(e){}
-    best=n;if(n>o)achRecord(o,n);
+    const keys=RMODE==='all'?RKEYS:[RKMAP[RMODE]];
+    try{keys.forEach(k=>localStorage.setItem(k,n))}catch(e){}
+    if(keys.indexOf(bestKey())>=0)best=n;
+    const nw=recBest();if(nw>o)achRecord(o,nw);
     if(!$('sv').hidden)drawStats();recInfo();hud();
   }
   function achChips(){q('#dach').innerHTML=BDG.map((b,i)=>'<button data-ach="r'+i+'" title="Recorde '+b[1]+'"><img src="'+b[2]+'"></button>').join('')+BDM.map((b,i)=>'<button data-ach="m'+i+'" title="'+b[0]+' melancias"><img src="'+b[1]+'"></button>').join('')}
@@ -1525,7 +1535,8 @@ let DBG=false,SPD=1,FREEZE=false,NOLOSE=false,DMODE='one';
     if(t.dataset.m){DMODE=t.dataset.m;return sync()}
     if(t.dataset.l!=null)return place(+t.dataset.l);
     if(t.dataset.ach)return achTest(t.dataset.ach);
-    if(t.dataset.radd)return setRec(recBest()+ +t.dataset.radd);
+    if(t.dataset.rmode){RMODE=t.dataset.rmode;sync();return recInfo()}
+    if(t.dataset.radd)return setRec(recOf(RMODE)+ +t.dataset.radd);
     if(t.dataset.spd){SPD=+t.dataset.spd;return sync()}
     switch(t.id){
       case 'dx':return open(false);
