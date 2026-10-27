@@ -447,7 +447,11 @@ const FB=(function(){
         if(c==='auth/too-many-requests')return'Muitas tentativas. Aguarde um pouco.';
         if(c==='auth/network-request-failed')return'Sem conexão com o servidor.';
         if(c==='auth/operation-not-allowed')return'Ative o login por E-mail/senha no Firebase.';
-        return'Não foi possível entrar. Tente de novo.';
+        if(c==='permission-denied')return'Firestore bloqueou: publique as regras do firestore.rules (aba Regras).';
+        if(c==='failed-precondition'||c==='not-found')return'Crie o banco Firestore no console do Firebase (Firestore Database > Criar banco).';
+        if(c==='unavailable')return'Firestore indisponível. Verifique a conexão.';
+        console.error('Firebase:',e);
+        return'Não foi possível entrar'+(c?' ('+c+')':'')+'. Tente de novo.';
       }
     };
   }catch(e){console.warn('Firebase indisponível:',e);return none}
