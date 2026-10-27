@@ -1041,7 +1041,7 @@ $('rk').onclick=()=>{$('rk').classList.remove('dot');try{localStorage.setItem('f
 $('bk').onclick=()=>{$('rv').hidden=true;$('mv').hidden=false};
 $('mn').onclick=()=>{pauseSave();openMenu()};
 addEventListener('pagehide',()=>{try{const o=[MODE,score,gt,DBG];Object.keys(PZ).forEach(k=>{const s=PZ[k];if(s.sv)return;s.sv=1;MODE=k;score=s.score;gt=s.gt;DBG=s.DBG;saveScore()});MODE=o[0];score=o[1];gt=o[2];DBG=o[3]}catch(e){}});
-['mo','lv','av','sv','tv','ev','rv','cfg'].forEach(id=>{const v=$(id);if(!v)return;const b=document.createElement('button');b.className='bkar';b.type='button';b.setAttribute('aria-label','Voltar');b.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M26 16H7M15 7 6 16l9 9" stroke="#2a0f45" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M26 16H7M15 7 6 16l9 9" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';b.onclick=()=>{const t=[...v.children].find(x=>x!==b&&x.tagName==='BUTTON'&&x.textContent.trim()==='Voltar');if(t)t.click();else openMenu()};v.insertBefore(b,v.firstChild)});
+['mo','lv','av','sv','tv','ev','rv','cfg','fv','pv','ov'].forEach(id=>{const v=$(id);if(!v)return;const b=document.createElement('button');b.className='bkar';b.type='button';b.setAttribute('aria-label','Voltar');b.innerHTML='<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M26 16H7M15 7 6 16l9 9" stroke="#2a0f45" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M26 16H7M15 7 6 16l9 9" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';b.onclick=()=>{const t=[...v.children].find(x=>x!==b&&x.tagName==='BUTTON'&&x.textContent.trim()==='Voltar');if(t)t.click();else openMenu()};v.insertBefore(b,v.firstChild)});
 $('gm').onclick=openMenu;
 (function(){const d=document,el=d.documentElement,rq=el.requestFullscreen||el.webkitRequestFullscreen,ex=d.exitFullscreen||d.webkitExitFullscreen;
 if(!rq||!(d.fullscreenEnabled||d.webkitFullscreenEnabled))return;
@@ -1578,6 +1578,8 @@ q('orl').onclick=async e=>{
 })();
 </script>
 <style>
+#fv #fvb,#pv #pb,#ov #ovb{display:none}
+#menu #xp{width:min(calc((100vw - 132px)/.68),440px)}
 #menu #mv[hidden]~.cfgar,#menu .cfgar.off{display:none!important}
 #cfg{display:flex;flex-direction:column;align-items:center;gap:12px;width:min(86vw,320px);box-sizing:border-box;padding:18px;border-radius:22px;background:color-mix(in srgb,var(--box) 90%,transparent);border:3px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,.25);max-height:calc(100dvh - 32px);overflow-y:auto;scrollbar-width:none}
 #cfg[hidden],#cfg .cs[hidden],#cfg input[hidden]{display:none}
