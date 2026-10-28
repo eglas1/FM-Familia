@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "Fruit Merge da Família Santos",
+  "short_name": "Fruit Merge",
+  "description": "Junte as frutas, bata recordes e suba no ranking com a família.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#9fd8f5",
+  "theme_color": "#9fd8f5",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
