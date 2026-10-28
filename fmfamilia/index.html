@@ -772,7 +772,7 @@ const FB=(function(){
           await ref.update({melons:FV.increment(inc.m),games:FV.increment(inc.g),siteMs:FV.increment(inc.s),
             xp:nn('fm-xp',1e11),bc:nn('fm-best',1e7),bs:nn('fm-best-s',1e7),bl:nn('fm-best-l',1e7),bv:nn('fm-best-v',1e7)});
           const d=(await ref.get()).data();
-          r.user=true;r.stats={melons:d.melons||0,games:d.games||0,siteMs:d.siteMs||0,top1Ms:0,created:d.created||0,badges:d.badges||[]};
+          r.user=true;r.stats={melons:d.melons||0,games:d.games||0,siteMs:d.siteMs||0,top1Ms:0,created:d.created||Date.parse(u.metadata&&u.metadata.creationTime)||0,badges:d.badges||[]};
         }else if(u)r.user=true;
         return r;
       },
