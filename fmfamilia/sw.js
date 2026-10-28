@@ -1,7 +1,7 @@
 /* Service worker do Fruit Merge.
-   Ao publicar uma nova versão do index.html, troque o número em VERSION
-   para forçar a atualização do cache nos aparelhos. */
-const VERSION = 'v2';
+   O index.html é sempre buscado na rede primeiro, então não precisa mexer
+   em nada para atualizar o jogo. Só troque VERSION se mudar ícones ou este arquivo. */
+const VERSION = 'v4';
 const CACHE = 'fruit-merge-' + VERSION;
 const PRECACHE = [
   './',
@@ -45,6 +45,19 @@ function swr(req, cacheKey) {
   );
 }
 
+function freshPage() {
+  return caches.open(CACHE).then(cache => {
+    // 'no-cache' = pergunta ao servidor se mudou; se não mudou, não baixa os 9 MB de novo
+    const net = fetch('./index.html', { cache: 'no-cache' }).then(res => {
+      if (res && res.ok) cache.put('./index.html', res.clone());
+      return res;
+    });
+    const timeout = new Promise((_, rej) => setTimeout(rej, 4000));
+    return Promise.race([net, timeout])
+      .catch(() => cache.match('./index.html').then(hit => hit || net));
+  });
+}
+
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -53,8 +66,10 @@ self.addEventListener('fetch', e => {
   // Firestore, Auth e demais APIs: sempre direto na rede (nunca em cache)
   if (url.origin !== location.origin && !EXTERNAL.includes(url.hostname)) return;
 
+  // Página do jogo: tenta a rede primeiro (versão nova na hora).
+  // Sem internet ou conexão lenta (> 4 s): usa a cópia guardada.
   if (req.mode === 'navigate') {
-    e.respondWith(swr(req, './index.html').then(r => r || caches.match('./index.html')));
+    e.respondWith(freshPage());
     return;
   }
   e.respondWith(swr(req));
