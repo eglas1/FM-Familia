@@ -1,7 +1,7 @@
 /* Service worker do Fruit Merge.
    Ao publicar uma nova versão do index.html, troque o número em VERSION
    para forçar a atualização do cache nos aparelhos. */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'fruit-merge-' + VERSION;
 const PRECACHE = [
   './',
