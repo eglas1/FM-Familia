@@ -251,6 +251,12 @@ button{background:var(--btn);color:#fff;border:0;border-radius:10px;padding:9px 
 #plv,#pvl{font-size:13px;font-weight:700;padding:2px 12px;border-radius:12px;background:var(--btn);color:#fff}
 #pcm{margin:0;font-size:12px;color:var(--line);text-align:center}#pcm:empty{display:none}
 #pvav{margin:2px auto 0}#pvt{margin:-2px 0 0}
+.pav.zoom{cursor:zoom-in}
+#pz{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;touch-action:manipulation}#pz[hidden]{display:none}
+#pz img{width:min(88vw,460px,62dvh);aspect-ratio:1;object-fit:cover;border-radius:22px;border:3px solid #fff;box-shadow:0 10px 40px rgba(0,0,0,.5);display:block}
+#pz b{color:#fff;font-size:21px;max-width:88vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pzx{position:fixed;left:calc(env(safe-area-inset-left,0px) + 10px);top:calc(env(safe-area-inset-top,0px) + 10px);width:48px;height:48px;padding:0;margin:0;border:0;border-radius:50%;background:none;box-shadow:none;display:flex;align-items:center;justify-content:center;opacity:.8}
+#pzx svg{width:32px;height:32px;display:block;fill:none}
 #rc{width:100%;padding:14px;font-size:18px;border-radius:12px}
 #gv p{margin:0;font-size:15px;text-align:center;opacity:.85}#gv h2{margin:0;text-align:center}
 #gns{display:flex;gap:14px;width:100%}
@@ -1238,7 +1244,7 @@ const AVSVG='<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><ci
 function okPhoto(p){return typeof p==='string'&&p.length<=30000&&/^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+\/=]+$/.test(p)}
 function avHTML(p){return okPhoto(p)?'<img alt="" src="'+p+'">':AVSVG}
 function packPhoto(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),im=new Image();
-  im.onload=()=>{try{const S=160,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d'),m=Math.min(im.width,im.height);
+  im.onload=()=>{try{const S=256,c=document.createElement('canvas');c.width=c.height=S;const x=c.getContext('2d'),m=Math.min(im.width,im.height);
     x.fillStyle='#fff';x.fillRect(0,0,S,S);x.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,S,S);URL.revokeObjectURL(u);
     for(const q of [.82,.7,.55,.4]){let o=c.toDataURL('image/webp',q);if(o.indexOf('data:image/webp')!==0)o=c.toDataURL('image/jpeg',q);if(o.length<=28000){ok(o);return}}
     no(new Error('big'))}catch(e){no(e)}};
@@ -1270,6 +1276,17 @@ async function nickSave(){
 }
 $('pns').onclick=nickSave;
 $('pni').onkeydown=e=>{if(e.key==='Enter')nickSave();else if(e.key==='Escape')nickOpen(false)};
+
+/* foto ampliada: toque na foto de outro jogador */
+var PVZ=null;
+(function(){const z=document.createElement('div');z.id='pz';z.hidden=true;
+  z.innerHTML='<button id="pzx" type="button" aria-label="Fechar"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M26 16H7M15 7 6 16l9 9" stroke="#2a0f45" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M26 16H7M15 7 6 16l9 9" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><img id="pzi" alt=""><b id="pzn"></b>';
+  document.body.appendChild(z);
+  const close=()=>{z.hidden=true;$('pzi').removeAttribute('src')};
+  z.onclick=close;
+  $('pvav').onclick=()=>{const v=PVZ;if(!v)return;$('pzi').src=v.p;$('pzn').textContent=v.n;z.hidden=false};
+  addEventListener('keydown',e=>{if(e.key==='Escape'&&!z.hidden)close()});
+})();
 
 function openProfile(){nickOpen(false);cardMsg('');drawStats();view('sv');if(USER)beat().then(()=>{if(!$('sv').hidden)drawStats()})}
 $('lo2').onclick=()=>$('lo').onclick();
@@ -1867,6 +1884,7 @@ q('frl').onclick=async e=>{
 function showProfile(f){
   show('pv');
   q('pvav').innerHTML=avHTML(f.photo);
+  PVZ=okPhoto(f.photo)?{p:f.photo,n:f.nick||f.name}:null;q('pvav').classList.toggle('zoom',!!PVZ);
   q('pn').textContent=f.nick||f.name;
   q('pvt').textContent=tg(f.name,f.tag);
   q('pvl').textContent='Nível '+lvl(f.xp);
