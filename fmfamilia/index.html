@@ -2207,11 +2207,18 @@ q('orl').onclick=async e=>{
 #rcm h3{margin:0;text-align:center;font-size:18px}#rcm input{width:100%;box-sizing:border-box;text-align:center;letter-spacing:1px}
 #rcm .cm{margin:0;font-size:13px;text-align:center;color:var(--line)}#rcm .cm:empty{display:none}#rcm .cm.ok{color:#2e9e4f}
 #rcm .rcr{display:flex;gap:8px}#rcm .rcr .fbtn{flex:1}
-@keyframes goldSh{0%{background-position:0% 50%}100%{background-position:250% 50%}}
-@keyframes goldGlow{0%{box-shadow:0 0 14px 2px rgba(255,210,60,.55),0 8px 24px rgba(0,0,0,.25)}100%{box-shadow:0 0 30px 8px rgba(255,235,120,.95),0 8px 24px rgba(0,0,0,.25)}}
-#sv.gold,#pv.gold{background:linear-gradient(115deg,#9a6400 0%,#ffd84a 14%,#fff7b8 24%,#ffcb1f 36%,#c88a00 50%,#ffe27a 64%,#fffbd0 74%,#ffc61a 86%,#9a6400 100%);background-size:250% 100%;animation:goldSh 4s linear infinite,goldGlow 2s ease-in-out infinite alternate;border-color:#fff6c2;color:#3b2500}
+@property --gx{syntax:'<length>';inherits:false;initial-value:0px}
+@property --sx{syntax:'<percentage>';inherits:false;initial-value:-25%}
+@keyframes goldFlow{from{--gx:0px}to{--gx:441.5px}}
+@keyframes goldSweep{0%{--sx:-25%;animation-timing-function:cubic-bezier(.45,0,.55,1)}38%{--sx:125%}100%{--sx:125%}}
+@keyframes goldGlow{0%{box-shadow:0 0 14px 2px rgba(255,210,60,.55),0 8px 24px rgba(0,0,0,.25)}100%{box-shadow:0 0 28px 7px rgba(255,235,120,.9),0 8px 24px rgba(0,0,0,.25)}}
+#sv.gold,#pv.gold{background:linear-gradient(100deg,transparent 0,transparent 43%,rgba(255,255,255,.8) 50%,transparent 57%,transparent 100%) var(--sx) 0/300% 100% no-repeat,repeating-linear-gradient(115deg,#9a6400 0,#ffd84a 55px,#fff7b8 95px,#ffcb1f 145px,#c88a00 200px,#ffe27a 255px,#fffbd0 295px,#ffc61a 345px,#9a6400 400px) var(--gx) 0/441.5px 100% repeat-x;animation:goldFlow 16s linear infinite,goldSweep 7s linear infinite,goldGlow 4s ease-in-out infinite alternate;border-color:#fff6c2;color:#3b2500}
 #sv.gold h2,#pv.gold h2,#sv.gold h3,#pv.gold h3,#sv.gold .fn,#pv.gold .fn,#pv.gold #pn,#pv.gold #pvt,#pv.gold #pvl,#sv.gold small,#pv.gold small{color:#3b2500;text-shadow:0 1px 0 rgba(255,255,255,.55)}
-@media (prefers-reduced-motion:reduce){#sv.gold,#pv.gold{animation:none}}
+#sv.gold .stc,#pv.gold .stc{padding:11px 5px;border:3px solid #f5b72a;background:linear-gradient(0deg,rgba(255,255,255,.95),rgba(255,255,255,0) 90%),linear-gradient(0deg,rgba(255,216,74,.3),rgba(255,216,74,.3)),var(--box);box-shadow:0 0 0 1px #b57a00,0 0 12px rgba(245,183,42,.7);color:#3b2500}
+#sv.gold,#pv.gold{position:relative}
+#sv.gold::before,#pv.gold::before{content:'Apoiador';position:absolute;left:10px;top:10px;z-index:3;padding:4px 11px 5px;border-radius:999px;font:800 11px/1 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#4a2e00;text-shadow:0 1px 0 rgba(255,255,255,.65);border:2px solid #fff6c2;background:linear-gradient(100deg,transparent 0,transparent 43%,rgba(255,255,255,.9) 50%,transparent 57%,transparent 100%) var(--sx) 0/300% 100% no-repeat,linear-gradient(160deg,#fff0a0 0%,#ffcf2e 45%,#d9980b 100%);box-shadow:0 0 0 1px #b57a00,0 0 10px rgba(255,225,100,.9),0 2px 4px rgba(0,0,0,.3);animation:goldSweep 7s linear infinite;pointer-events:none}
+:lang(en) #sv.gold::before,:lang(en) #pv.gold::before{content:'Supporter'}
+@media (prefers-reduced-motion:reduce){#sv.gold,#pv.gold{animation:none}#sv.gold::before,#pv.gold::before{animation:none}}
 #cfg[hidden],#cfg .cs[hidden],#cfg input[hidden]{display:none}
 #cfg::-webkit-scrollbar{display:none}
 #cfg>*{flex-shrink:0}
