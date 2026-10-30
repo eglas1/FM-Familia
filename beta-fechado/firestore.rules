@@ -1,0 +1,410 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Perfil público do jogador (nome, tag, gênero, estatísticas, XP e recordes).
+    // Qualquer jogador logado pode LER (é o que permite ver o perfil dos amigos); só o dono escreve.
+    match /users/{uid} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name','melons','games','siteMs','tag','created','gender'])
+        && (!('created' in request.resource.data) || (request.resource.data.created is int && request.resource.data.created <= request.time.toMillis() + 86400000))
+        && request.resource.data.name is string
+        && (!('gender' in request.resource.data) || request.resource.data.gender in ['m','f'])
+        && request.resource.data.name.size() >= 3 && request.resource.data.name.size() <= 12
+        && request.resource.data.melons is int && request.resource.data.melons >= 0 && request.resource.data.melons <= 100000
+        && request.resource.data.games is int && request.resource.data.games >= 0 && request.resource.data.games <= 100000
+        && request.resource.data.siteMs is int && request.resource.data.siteMs >= 0 && request.resource.data.siteMs <= 360000000
+        && request.resource.data.tag == getAfter(/databases/$(database)/documents/meta/counter).data.n;
+
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['melons','games','siteMs','tag','xp','bc','bs','bl','bv','created','dw','pw'])
+        // data de criação (insígnias de tester): só pode ser gravada uma vez, em contas que ainda não têm
+        && (!('created' in request.resource.data.diff(resource.data).affectedKeys())
+            || (!('created' in resource.data) && request.resource.data.created is int && request.resource.data.created <= request.time.toMillis() + 86400000))
+        && request.resource.data.melons - resource.data.melons >= 0
+        && request.resource.data.melons - resource.data.melons <= 100000
+        && request.resource.data.games - resource.data.games >= 0
+        && request.resource.data.games - resource.data.games <= 100000
+        && request.resource.data.siteMs - resource.data.siteMs >= 0
+        && request.resource.data.siteMs - resource.data.siteMs <= 360000000
+        // a tag só pode ser definida uma vez (contas antigas) e precisa ser o próximo número do contador
+        && (!('tag' in request.resource.data.diff(resource.data).affectedKeys())
+            || (!('tag' in resource.data) && request.resource.data.tag == getAfter(/databases/$(database)/documents/meta/counter).data.n))
+        // duelos vencidos (dw = 1v1) e duplas vencidas (pw): só podem subir, poucas por vez
+        && (!('dw' in request.resource.data) || (request.resource.data.dw is int && request.resource.data.dw >= resource.data.get('dw', 0) && request.resource.data.dw - resource.data.get('dw', 0) <= 1000 && request.resource.data.dw <= 1000000))
+        && (!('pw' in request.resource.data) || (request.resource.data.pw is int && request.resource.data.pw >= resource.data.get('pw', 0) && request.resource.data.pw - resource.data.get('pw', 0) <= 1000 && request.resource.data.pw <= 1000000))
+        && (!('xp' in request.resource.data) || (request.resource.data.xp is int && request.resource.data.xp >= 0 && request.resource.data.xp <= 100000000000))
+        && (!('bc' in request.resource.data) || (request.resource.data.bc is int && request.resource.data.bc >= 0 && request.resource.data.bc <= 10000000))
+        && (!('bs' in request.resource.data) || (request.resource.data.bs is int && request.resource.data.bs >= 0 && request.resource.data.bs <= 10000000))
+        && (!('bl' in request.resource.data) || (request.resource.data.bl is int && request.resource.data.bl >= 0 && request.resource.data.bl <= 10000000))
+        && (!('bv' in request.resource.data) || (request.resource.data.bv is int && request.resource.data.bv >= 0 && request.resource.data.bv <= 10000000));
+    }
+
+    // RESETAR CONTA (console): o dono pode ZERAR as próprias estatísticas e XP/recordes.
+    // Só aceita zerar (ou remover) os campos; nome e tag não podem mudar por aqui.
+    match /users/{uid} {
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['melons','games','siteMs','xp','bc','bs','bl','bv','dw','pw'])
+        && request.resource.data.melons == 0
+        && request.resource.data.games == 0
+        && request.resource.data.siteMs == 0
+        && (!('dw' in request.resource.data) || request.resource.data.dw == 0)
+        && (!('pw' in request.resource.data) || request.resource.data.pw == 0)
+        && (!('xp' in request.resource.data) || request.resource.data.xp == 0)
+        && (!('bc' in request.resource.data) || request.resource.data.bc == 0)
+        && (!('bs' in request.resource.data) || request.resource.data.bs == 0)
+        && (!('bl' in request.resource.data) || request.resource.data.bl == 0)
+        && (!('bv' in request.resource.data) || request.resource.data.bv == 0);
+    }
+
+    // APELIDO e FOTO: o dono muda quando quiser. Apelido até 15 caracteres; foto é uma miniatura pequena em texto (data URL).
+    match /users/{uid} {
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nick','photo'])
+        && (!('nick' in request.resource.data.diff(resource.data).affectedKeys())
+            || (request.resource.data.nick is string && request.resource.data.nick.size() <= 15))
+        && (!('photo' in request.resource.data.diff(resource.data).affectedKeys())
+            || (request.resource.data.photo is string && request.resource.data.photo.size() <= 30000
+                && (request.resource.data.photo == '' || request.resource.data.photo.matches('^data:image/(webp|jpeg|png);base64,[A-Za-z0-9+/=]+$'))));
+    }
+
+    // TEMA DO PERFIL: o dono escolhe qual fundo (padrão, prata ou ouro) os amigos veem no perfil dele.
+    // O app só mostra prata/ouro se a conta tiver o selo correspondente.
+    match /users/{uid} {
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ptheme'])
+        && request.resource.data.ptheme in ['', 'padrao', 'prata', 'ouro'];
+    }
+
+    // GÊNERO: contas antigas (sem gênero) podem escolher uma única vez; depois disso não muda mais.
+    match /users/{uid} {
+      allow update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['gender'])
+        && !('gender' in resource.data)
+        && request.resource.data.gender in ['m','f'];
+    }
+
+    // INSÍGNIAS (console): só o administrador (conta com tag 1) pode gravar o campo "badges" em qualquer conta.
+    // A tag é definida uma única vez e não pode ser alterada, então ninguém consegue se passar pelo administrador.
+    match /users/{uid} {
+      allow update: if request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tag == 1
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['badges'])
+        && request.resource.data.badges is list
+        && request.resource.data.badges.size() <= 40;
+    }
+
+    // Progresso salvo do jogador (recordes, XP, tema, imagens...): só o dono
+    match /users/{uid}/save/{id} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && id.matches('^fm-[a-z0-9-]{1,20}__[0-9]{1,2}$')
+        && request.resource.data.keys().hasOnly(['k','i','n','v','t'])
+        && request.resource.data.v is string && request.resource.data.v.size() <= 450000
+        && request.resource.data.n is int && request.resource.data.n >= 1 && request.resource.data.n <= 40;
+    }
+
+    // Lista de amigos: só o dono lê/edita; o jogador adicionado precisa existir
+    match /users/{uid}/friends/{fid} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && fid != uid
+        && request.resource.data.keys().hasOnly(['name','tag','t'])
+        && exists(/databases/$(database)/documents/users/$(fid));
+    }
+
+    // Contador global de contas: cada cadastro soma exatamente 1 (nome#1, nome#2...)
+    match /meta/counter {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == 1;
+      allow update: if request.auth != null
+        && request.resource.data.keys().hasOnly(['n']) && request.resource.data.n == resource.data.n + 1;
+    }
+
+    // Tags: número -> jogador. Só se cria uma vez, e só com o número que o contador acabou de atingir
+    match /tags/{n} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && n.matches('^[0-9]{1,9}$')
+        && request.resource.data.keys().hasOnly(['uid','name'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.name == getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
+        && getAfter(/databases/$(database)/documents/meta/counter).data.n == int(n);
+    }
+
+    // Ranking global: todos leem; só logados criam, com o próprio nome; ninguém edita; só o dono apaga as próprias
+    match /scores/{id} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid','n','s','d','m','t'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.n == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
+        && request.resource.data.s is int && request.resource.data.s > 0 && request.resource.data.s <= 10000000
+        && request.resource.data.d is int && request.resource.data.d >= 0
+        && request.resource.data.m is string && request.resource.data.m.size() <= 12
+        && request.resource.data.t is number;
+      allow update: if false;
+      // o dono pode apagar as próprias pontuações (resetar/apagar conta)
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // Recorde mundial por modo (um documento por modo: classic, surv, estatica, sorte...).
+    // Todos leem. Só logado cria/assume, com o próprio uid e o próprio nome, e só superando o recorde atual.
+    // O dono do recorde pode renomear (mantendo os pontos) ou apagar (troca de nome / apagar conta).
+    match /records/{modo} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+        && modo.matches('^[a-z0-9-]{1,20}$')
+        && request.resource.data.keys().hasOnly(['uid','n','s','d','t','g'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.n == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
+        && (!('g' in request.resource.data) || request.resource.data.g == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gender)
+        && request.resource.data.s is int && request.resource.data.s > 0 && request.resource.data.s <= 10000000
+        && request.resource.data.d is int && request.resource.data.d >= 0;
+
+      // assumir o recorde: pontos precisam ser maiores que os atuais
+      allow update: if request.auth != null
+        && request.resource.data.keys().hasOnly(['uid','n','s','d','t','g'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.n == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
+        && (!('g' in request.resource.data) || request.resource.data.g == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gender)
+        && request.resource.data.s is int && request.resource.data.s > resource.data.s && request.resource.data.s <= 10000000
+        && request.resource.data.d is int && request.resource.data.d >= 0;
+
+      // dono do recorde: só pode mudar o nome e o gênero (pontos, tempo e uid ficam iguais)
+      allow update: if request.auth != null
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['n','g'])
+        && request.resource.data.n == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
+        && (!('g' in request.resource.data) || request.resource.data.g == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.gender);
+
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // "Jogadores online": cada aba grava um carimbo de tempo a cada ~25s.
+    // Logados também gravam uid, nome e tag (conferidos com o perfil); visitantes só o carimbo.
+    match /presence/{cid} {
+      allow read: if true;
+      allow create, update: if cid.size() <= 24
+        && request.resource.data.keys().hasOnly(['t','u','n','g'])
+        && request.resource.data.t == request.time
+        && (!('u' in request.resource.data)
+            || (request.auth != null
+                && request.resource.data.u == request.auth.uid
+                && request.resource.data.n == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name
+                && request.resource.data.g == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tag));
+      allow delete: if false;
+    }
+
+    // DUELO 1v1: uma sala por documento (o ID é o código de 5 letras/números).
+    // O anfitrião (h) e o convidado (g) só escrevem no PRÓPRIO mapa. Só o anfitrião muda status/seed e apaga a sala.
+    // Ler uma sala exige o código (get); listar todas as salas é proibido.
+    match /duels/{code} {
+      function nm() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name; }
+      function ak() { return request.resource.data.diff(resource.data).affectedKeys(); }
+      function fresh(n) {
+        return n.keys().hasOnly(['rdy','score','hb','jk','fin','dead','left'])
+          && n.rdy == false && n.score == 0 && n.hb == 0 && n.jk == 0
+          && n.fin == false && n.dead == false && n.left == false;
+      }
+      // estado de um jogador: placar só sobe (até +5000 por gravação), fruta lixo enviada sobe no máx. 3 por vez
+      function okSt(n, o) {
+        return n.keys().hasOnly(['rdy','score','hb','jk','fin','dead','left'])
+          && n.rdy is bool && n.fin is bool && n.dead is bool && n.left is bool
+          && n.score is int && n.score >= o.score && n.score - o.score <= 5000 && n.score <= 500000
+          && n.hb is int && n.hb >= 0
+          && n.jk is int && n.jk >= o.jk && n.jk - o.jk <= 3 && n.jk <= 300;
+      }
+
+      allow get: if request.auth != null;
+      allow list: if false;
+
+      allow create: if request.auth != null
+        && code.matches('^[A-Z0-9]{5}$')
+        && request.resource.data.keys().hasOnly(['host','guest','hn','gn','status','seed','t','exp','h','g'])
+        && request.resource.data.host == request.auth.uid
+        && request.resource.data.guest == null
+        && request.resource.data.g == null
+        && request.resource.data.hn == nm()
+        && request.resource.data.gn == ''
+        && request.resource.data.status == 'waiting'
+        && request.resource.data.seed == 0
+        && request.resource.data.t == request.time
+        // expiração automática (TTL): entre 23h e 25h depois da criação
+        && request.resource.data.exp is timestamp
+        && request.resource.data.exp > request.time + duration.value(23, 'h')
+        && request.resource.data.exp < request.time + duration.value(25, 'h')
+        && fresh(request.resource.data.h);
+
+      // convidado entra na sala vazia
+      allow update: if request.auth != null
+        && resource.data.guest == null
+        && resource.data.host != request.auth.uid
+        && resource.data.status == 'waiting'
+        && ak().hasOnly(['guest','gn','g'])
+        && request.resource.data.guest == request.auth.uid
+        && request.resource.data.gn == nm()
+        && fresh(request.resource.data.g);
+
+      // convidado sai da sala de espera
+      allow update: if request.auth != null
+        && resource.data.guest == request.auth.uid
+        && resource.data.status == 'waiting'
+        && ak().hasOnly(['guest','gn','g'])
+        && request.resource.data.guest == null
+        && request.resource.data.gn == ''
+        && request.resource.data.g == null;
+
+      // anfitrião: atualiza o próprio estado e dá a largada (só com os dois prontos)
+      allow update: if request.auth != null
+        && resource.data.host == request.auth.uid
+        && ak().hasOnly(['h','status','seed'])
+        && (!('h' in ak()) || okSt(request.resource.data.h, resource.data.h))
+        && (!('status' in ak()) || (
+              resource.data.status == 'waiting'
+              && request.resource.data.status == 'countdown'
+              && resource.data.guest != null
+              && resource.data.g.rdy == true
+              && resource.data.h.rdy == true
+              && request.resource.data.seed is int && request.resource.data.seed > 0))
+        && (!('seed' in ak()) || ('status' in ak()));
+
+      // convidado: atualiza só o próprio estado
+      allow update: if request.auth != null
+        && resource.data.guest == request.auth.uid
+        && ak().hasOnly(['g'])
+        && okSt(request.resource.data.g, resource.data.g);
+
+      allow delete: if request.auth != null && resource.data.host == request.auth.uid;
+    }
+
+    // DUELO EM DUPLAS (2v2): uma sala por documento (o ID é o código de 5 letras/números).
+    // s0..s3 são as 4 vagas (mapa ou null). Cada jogador só escreve na PRÓPRIA vaga; o anfitrião também mexe nos bots,
+    // e só ele muda status/seed e apaga a sala. Até 3 por time na espera, mas só começa com 2 de cada lado e todos prontos.
+    match /duos/{code} {
+      function nm() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.name; }
+      function ak() { return request.resource.data.diff(resource.data).affectedKeys(); }
+      function tc(d, k, t) { return (d[k] != null && d[k].tm == t) ? 1 : 0; }
+      function cnt(d, t) { return tc(d, 's0', t) + tc(d, 's1', t) + tc(d, 's2', t) + tc(d, 's3', t); }
+      function seated(d, u) {
+        return (d.s0 != null && d.s0.u == u) || (d.s1 != null && d.s1.u == u)
+            || (d.s2 != null && d.s2.u == u) || (d.s3 != null && d.s3.u == u);
+      }
+      function allRdy(d) {
+        return d.s0 != null && d.s0.rdy == true && d.s1 != null && d.s1.rdy == true
+            && d.s2 != null && d.s2.rdy == true && d.s3 != null && d.s3.rdy == true;
+      }
+      function seatKeys(n) {
+        return n.keys().hasOnly(['u','n','bot','tm','rdy','score','hb','jk','bk','bp','fin','dead','left','ko']);
+      }
+      // vaga recém-criada (humano ou bot)
+      function freshSeat(n) {
+        return seatKeys(n) && n.tm in [0,1] && n.score == 0 && n.hb == 0 && n.jk == 0 && n.bk == 0 && n.bp == 0
+          && n.fin == false && n.dead == false && n.left == false;
+      }
+      // estado de um jogador: placar só sobe (até +5000 por gravação), fruta lixo enviada sobe no máx. 3 por vez,
+      // cesta cheia sobe 1 por vez; o time só muda na sala de espera
+      function okSeat(n, o, st) {
+        return seatKeys(n) && n.u == o.u && n.n == o.n && n.bot == o.bot
+          && n.tm in [0,1] && (n.tm == o.tm || st == 'waiting')
+          && n.rdy is bool && n.fin is bool && n.dead is bool && n.left is bool
+          && n.score is int && n.score >= o.score && n.score - o.score <= 5000 && n.score <= 500000
+          && n.hb is int && n.hb >= 0
+          && n.jk is int && n.jk >= o.jk && n.jk - o.jk <= 3 && n.jk <= 300
+          && n.bk is int && n.bk >= o.bk && n.bk - o.bk <= 1 && n.bk <= 100
+          && n.bp is int && n.bp >= 0 && n.bp <= 20
+          // fruta nível 8 criada (deixa o rival espelho sem frutas): contador que só sobe
+          && (!('ko' in n) || (n.ko is int && n.ko >= o.get('ko', 0) && n.ko - o.get('ko', 0) <= 3 && n.ko <= 500));
+      }
+      // entrar numa vaga livre da sala de espera
+      function joinSeat(k) {
+        return ak().hasOnly([k]) && resource.data[k] == null && request.resource.data[k] != null
+          && freshSeat(request.resource.data[k])
+          && request.resource.data[k].u == request.auth.uid
+          && request.resource.data[k].n == nm()
+          && request.resource.data[k].bot == false
+          && request.resource.data[k].rdy == false
+          && cnt(request.resource.data, request.resource.data[k].tm) <= 3
+          && !seated(resource.data, request.auth.uid);
+      }
+      // sair da sala de espera
+      function leaveSeat(k) {
+        return ak().hasOnly([k]) && resource.data[k] != null && resource.data[k].u == request.auth.uid
+          && request.resource.data[k] == null;
+      }
+      // o jogador atualiza a própria vaga
+      function selfSeat(k) {
+        return ak().hasOnly([k]) && resource.data[k] != null && resource.data[k].u == request.auth.uid
+          && request.resource.data[k] != null
+          && okSeat(request.resource.data[k], resource.data[k], resource.data.status)
+          && (request.resource.data[k].tm == resource.data[k].tm || cnt(request.resource.data, request.resource.data[k].tm) <= 3);
+      }
+      // anfitrião: pôr, tirar ou trocar de time os bots (só na sala de espera)
+      function hostBot(k) {
+        return resource.data.host == request.auth.uid && resource.data.status == 'waiting' && ak().hasOnly([k])
+          && (
+            (resource.data[k] == null && request.resource.data[k] != null && freshSeat(request.resource.data[k])
+              && request.resource.data[k].bot == true && request.resource.data[k].u == '' && request.resource.data[k].rdy == true
+              && cnt(request.resource.data, request.resource.data[k].tm) <= 3)
+            || (resource.data[k] != null && resource.data[k].bot == true && request.resource.data[k] == null)
+            || (resource.data[k] != null && resource.data[k].bot == true && request.resource.data[k] != null
+              && request.resource.data[k].bot == true
+              && request.resource.data[k].diff(resource.data[k]).affectedKeys().hasOnly(['tm'])
+              && request.resource.data[k].tm in [0,1]
+              && cnt(request.resource.data, request.resource.data[k].tm) <= 3)
+          );
+      }
+
+      allow get: if request.auth != null;
+      allow list: if false;
+
+      // o anfitrião cria a sala já sentado na vaga s0
+      allow create: if request.auth != null
+        && code.matches('^[A-Z0-9]{5}$')
+        && request.resource.data.keys().hasOnly(['host','status','seed','t','exp','s0','s1','s2','s3'])
+        && request.resource.data.host == request.auth.uid
+        && request.resource.data.status == 'waiting'
+        && request.resource.data.seed == 0
+        && request.resource.data.t == request.time
+        // expiração automática (TTL): entre 23h e 25h depois da criação
+        && request.resource.data.exp is timestamp
+        && request.resource.data.exp > request.time + duration.value(23, 'h')
+        && request.resource.data.exp < request.time + duration.value(25, 'h')
+        && request.resource.data.s0 != null && freshSeat(request.resource.data.s0)
+        && request.resource.data.s0.u == request.auth.uid
+        && request.resource.data.s0.n == nm()
+        && request.resource.data.s0.bot == false
+        && request.resource.data.s0.rdy == false
+        && request.resource.data.s1 == null && request.resource.data.s2 == null && request.resource.data.s3 == null;
+
+      // entrar / sair da sala de espera
+      allow update: if request.auth != null && resource.data.status == 'waiting'
+        && (joinSeat('s0') || joinSeat('s1') || joinSeat('s2') || joinSeat('s3')
+         || leaveSeat('s0') || leaveSeat('s1') || leaveSeat('s2') || leaveSeat('s3'));
+
+      // cada jogador atualiza só a própria vaga
+      allow update: if request.auth != null
+        && (selfSeat('s0') || selfSeat('s1') || selfSeat('s2') || selfSeat('s3'));
+
+      // anfitrião: bots
+      allow update: if request.auth != null
+        && (hostBot('s0') || hostBot('s1') || hostBot('s2') || hostBot('s3'));
+
+      // anfitrião: dá a largada (só com 4 na sala, 2 de cada time e todos prontos)
+      allow update: if request.auth != null
+        && resource.data.host == request.auth.uid
+        && ak().hasOnly(['status','seed'])
+        && resource.data.status == 'waiting'
+        && request.resource.data.status == 'countdown'
+        && cnt(resource.data, 0) == 2 && cnt(resource.data, 1) == 2
+        && allRdy(resource.data)
+        && request.resource.data.seed is int && request.resource.data.seed > 0;
+
+      allow delete: if request.auth != null && resource.data.host == request.auth.uid;
+    }
+  }
+}
