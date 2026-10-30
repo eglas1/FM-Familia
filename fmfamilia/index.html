@@ -516,7 +516,7 @@ html #ov{position:relative;background:rgba(0,0,0,.75);border:0;color:#fff} /* "h
 #fa,#fv,#pv,#ov{display:flex;flex-direction:column;align-items:center;gap:14px;width:min(86vw,320px);box-sizing:border-box;padding:18px;border-radius:22px;background:color-mix(in srgb,var(--box) 90%,transparent);border:3px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,.25);max-height:calc(100dvh - 32px);overflow-y:auto;scrollbar-width:none}
 #fa[hidden],#fv[hidden],#pv[hidden],#ov[hidden],#fbar[hidden]{display:none}
 #fa>*,#fv>*,#pv>*,#ov>*{flex-shrink:0}
-#onl{cursor:pointer;pointer-events:auto}#onl:active{opacity:.7}
+#onl{cursor:pointer;pointer-events:auto;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;outline:0}#onl:active{opacity:.7}
 html #ov{z-index:90}#ov .frow .od{box-shadow:none}#ov::before{content:"";position:fixed;inset:0;z-index:-1}
 #orl{width:100%;display:flex;flex-direction:column;gap:8px}#oe{margin:-4px 0;font-size:13px;color:var(--line);text-align:center}#oe:empty{display:none}
 .frow em{font-style:normal;font-size:12px;opacity:.7;white-space:nowrap}
@@ -2344,6 +2344,8 @@ q('orl').onclick=async e=>{
 #fv #fvb,#pv #pb,#ov #ovb{position:absolute;top:10px;left:10px;width:30px;height:30px;padding:0;margin:0;display:flex;align-items:center;justify-content:center;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent}#ovb svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}#ovb:active{transform:scale(.92)}
 /* aba Online: sem seta de voltar no canto superior esquerdo (toque fora do cartão fecha) */
 #ov .bkar,#ov #ovb{display:none!important}
+/* amigos e perfil do amigo: só a seta de voltar do canto (sem o botão redondo antigo "Voltar"); a seta continua acionando esses botões por trás */
+#fv #fvb,#pv #pb{display:none!important}
 /* aba Online: menos espaço entre os cartões dos jogadores */
 #orl{gap:3px!important}#orl .frow{margin:0!important}
 #menu #xp{width:min(calc((100vw - 132px)/.68),440px)}
@@ -2371,6 +2373,9 @@ q('orl').onclick=async e=>{
 #sv.silver .stc,#pv.silver .stc,.apv.silver .stc{padding:11px 5px;border:3px solid #b4bfcc;background:linear-gradient(0deg,rgba(255,255,255,.95),rgba(255,255,255,0) 90%),linear-gradient(0deg,rgba(200,212,228,.35),rgba(200,212,228,.35)),var(--box);box-shadow:0 0 0 1px #6b7480,0 0 12px rgba(180,195,215,.75);color:#1c242d}
 #sv.silver::before,#pv.silver::before,.apv.silver::before{content:'Apoiador';position:absolute;left:10px;top:10px;z-index:3;padding:4px 11px 5px;border-radius:999px;font:800 11px/1 system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#1c242d;text-shadow:0 1px 0 rgba(255,255,255,.75);border:2px solid #f1f5f9;background:linear-gradient(100deg,transparent 0,transparent 43%,rgba(255,255,255,.95) 50%,transparent 57%,transparent 100%) var(--sx) 0/300% 100% no-repeat,linear-gradient(160deg,#f5f8fc 0%,#c3ccd8 45%,#8e99a6 100%);box-shadow:0 0 0 1px #6b7480,0 0 10px rgba(225,236,250,.9),0 2px 4px rgba(0,0,0,.3);animation:goldSweep 7s linear infinite;pointer-events:auto;cursor:pointer}
 :lang(en) #sv.silver::before,:lang(en) #pv.silver::before,:lang(en) .apv.silver::before{content:'Supporter'}
+/* EN: badge "Supporter" menor e sem cobrir a foto do perfil */
+:lang(en) #sv.gold::before,:lang(en) #pv.gold::before,:lang(en) .apv.gold::before,:lang(en) #sv.silver::before,:lang(en) #pv.silver::before,:lang(en) .apv.silver::before{left:8px;top:8px;padding:3px 8px 3px;font-size:9px;letter-spacing:.03em;border-width:1.5px}
+:lang(en) #sv.gold,:lang(en) #pv.gold,:lang(en) #sv.silver,:lang(en) #pv.silver{padding-top:40px}
 @media (prefers-reduced-motion:reduce){#sv.gold,#pv.gold,.apv.gold,#sv.silver,#pv.silver,.apv.silver{animation:none}#sv.gold::before,#pv.gold::before,.apv.gold::before,#sv.silver::before,#pv.silver::before,.apv.silver::before{animation:none}}
 #cfg[hidden],#cfg .cs[hidden],#cfg input[hidden]{display:none}
 #cfg::-webkit-scrollbar{display:none}
